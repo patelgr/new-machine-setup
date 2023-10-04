@@ -1,0 +1,488 @@
+#!/bin/bash
+
+# Function to log messages
+log() {
+    echo "[LOG] $1"
+}
+
+
+
+
+# Function to backup configuration files
+backup_config_files() {
+    current_datetime=$(date +'%Y-%m-%d_%H-%M-%S')
+    backup_dir=~/.bkp/config/$current_datetime
+    mkdir -p "$backup_dir"
+    cp ~/.zshrc "$backup_dir/zshrc_backup" && log "Backed up ~/.zshrc to $backup_dir/zshrc_backup"
+    cp ~/.vimrc "$backup_dir/vimrc_backup" && log "Backed up ~/.vimrc to $backup_dir/vimrc_backup"
+    log "Configuration files backed up to $backup_dir."
+}
+
+
+# Function to install a package using Homebrew (macOS)
+install_package_mac() {
+    local package_name="$1"
+
+    if [[ -x "$(command -v brew)" ]]; then
+        # Homebrew is installed, install the package
+        brew install "$package_name"
+    else
+        log "Homebrew is not installed. Cannot install '$package_name'."
+    fi
+}
+
+# Function to install a package using apt (Debian-based Linux)
+install_package_debian() {
+    local package_name="$1"
+    sudo apt-get install -y "$package_name"
+}
+
+# Function to install a package based on the platform
+install_package() {
+    local package_name="$1"
+
+    if [[ $(uname) == "Darwin" ]]; then
+        install_package_mac "$package_name"
+    elif [[ -f /etc/debian_version ]]; then
+        install_package_debian "$package_name"
+    else
+        log "Unsupported operating system for package installation."
+    fi
+}
+
+
+# Function to install Java on macOS using Homebrew
+install_java_mac() {
+    local version="$1"
+    log "Installing Java $version on macOS..."
+
+    # Install openjdk using install_package function
+    install_package "openjdk@$version"
+
+    echo "alias java$version=\"export JAVA_HOME=\$(/usr/libexec/java_home -v $version); java -version\"" >> ~/.zshrc && log "Added Java $version alias to ~/.zshrc"
+    sudo ln -sfn "/usr/local/opt/openjdk@$version/libexec/openjdk.jdk" "/Library/Java/JavaVirtualMachines/openjdk-$version.jdk"
+    log "Java $version installation completed."
+}
+
+# Function to install Java on Linux (Debian-based)
+install_java_debian() {
+    local version="$1"
+    log "Installing Java $version on Debian-based Linux..."
+
+    # Install openjdk using install_package function
+    install_package "openjdk-$version-jdk"
+
+    log "Java $version installation completed."
+}
+
+
+# Function to install Java based on OS and version
+install_java() {
+    local version="$1"
+    if [[ $(uname) == "Darwin" ]]; then
+        # Install openjdk using install_package function
+        install_java_mac "$version"
+    elif [[ -f /etc/debian_version ]]; then
+        # Install openjdk using install_package function
+        install_java_debian "$version"
+    else
+        log "Unsupported operating system for Java installation."
+    fi
+}
+
+# Function to install Oh-My-Zsh
+install_oh_my_zsh() {
+    log "Installing Oh-My-Zsh..."
+    sh -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
+    log "Oh-My-Zsh installation completed."
+}
+
+# Function to download and install Powerlevel10k theme
+install_powerlevel10k() {
+    local theme_dir="${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/themes/powerlevel10k"
+    log "Downloading and installing Powerlevel10k theme..."
+    git clone https://github.com/romkatv/powerlevel10k.git "$theme_dir" && log "Powerlevel10k theme installed to $theme_dir"
+    sed -i -e '/^[[:space:]]*ZSH_THEME=/ {s/^/# /; s/$/\nZSH_THEME="powerlevel10k\/powerlevel10k"/}' ~/.zshrc && log "Updated ~/.zshrc with Powerlevel10k theme"
+}
+
+# Function to install a Zsh plugin
+install_zsh_plugin() {
+    local plugin_repo="$1"
+    local zsh_custom="${ZSH_CUSTOM:-~/.oh-my-zsh/custom}"
+    local plugin_name=$(basename "$plugin_repo")
+    local plugin_dir="$zsh_custom/plugins/$plugin_name"
+
+    if [ -d "$plugin_dir" ]; then
+        log "$plugin_name is already installed."
+        return
+    fi
+
+    read -p "Do you want to install the $plugin_name plugin (Y/N)? " install_choice
+    if [[ $install_choice == [Yy]* ]]; then
+        git clone "https://github.com/$plugin_repo" "$plugin_dir" && log "Installed $plugin_name plugin to $plugin_dir"
+    else
+        log "$plugin_name installation skipped."
+    fi
+}
+
+
+# Function to configure Zsh plugins
+configure_zsh_plugins() {
+    local zsh_custom="${ZSH_CUSTOM:-~/.oh-my-zsh/custom}"
+
+    # List of plugins to install
+    local plugins=(
+        "zsh-users/zsh-autosuggestions"
+        "zsh-users/zsh-syntax-highlighting"
+    )
+
+    log "Configuring Zsh plugins..."
+
+    for plugin_repo in "${plugins[@]}"; do
+        install_zsh_plugin "$plugin_repo"
+    done
+
+    # Define the list of plugins for the .zshrc file
+    local plugin_list=(
+        "brew"
+        "git"
+        "gradle"
+        "ng"
+        "npm"
+        "yarn"
+        "zsh-syntax-highlighting"
+        "zsh-autosuggestions"
+        "macOS"
+        "history-substring-search"
+        "history"
+        "common-aliases"
+        "pyenv"
+        "jsontools"
+        "zsh-interactive-cd"
+    )
+
+    # Modify Zsh plugins in ~/.zshrc
+    sed -i -e '/^plugins=/ {
+        /\)$/ {
+            c\
+    # Update the plugins list
+    plugins=(
+      '"${plugin_list[@]}"'
+    )
+        }
+    }' ~/.zshrc && log "Updated ~/.zshrc with new plugin list"
+}
+
+# Function to configure Zsh plugins if Oh-My-Zsh is installed
+configure_zsh_plugins_if_installed() {
+    local zsh_custom="${ZSH_CUSTOM:-~/.oh-my-zsh/custom}"
+
+    if [[ -d "$zsh_custom" ]]; then
+        configure_zsh_plugins
+    else
+        log "Oh-My-Zsh is not installed. Skipping Zsh plugin configuration."
+    fi
+}
+
+
+# Function to install Python with PyEnv
+install_python_3_9_11() {
+    # Install and set Python version with PyEnv
+    pyenv install 3.9.13
+    pyenv global 3.9.13
+    log "Python 3.9.13 installed and set as the global version."
+}
+
+# Function to install PyEnv and its dependencies
+install_pyenv() {
+    if [[ $(uname) == "Darwin" ]]; then
+        # Install required packages on macOS using Homebrew
+        install_package_mac openssl readline sqlite3 xz zlib
+        install_package_mac pyenv
+        log "PyEnv installation completed."
+    elif [[ $(uname) == "Linux" ]]; then
+        # Install required packages on Linux using apt
+        sudo apt update
+        sudo apt install -y git openssl libssl-dev libbz2-dev libreadline-dev libsqlite3-dev libffi-dev
+        curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer | bash
+        log "PyEnv installation completed."
+    else
+        log "Unsupported operating system."
+        exit 1
+    fi
+}
+
+# Function to install Fira Code Nerd Font if specified
+install_fira_code() {
+    if [[ "$FIRA_CODE_INSTALL" == "yes" ]]; then
+        if [[ $(uname) == "Darwin" ]]; then
+            # Install Fira Code Nerd Font on macOS
+            install_package "font-fira-code-nerd-font"
+        elif [[ -f /etc/debian_version ]]; then
+            # Install Fira Code Nerd Font on Debian-based Linux
+            sudo apt-get install fonts-firacode
+        else
+            log "Unsupported operating system for Fira Code Nerd Font installation."
+        fi
+    fi
+}
+
+# Function to install TextMate using Homebrew if specified
+install_textmate() {
+    if [[ "$TEXTMATE_INSTALL" == "yes" ]]; then
+        install_package "textmate"
+    fi
+}
+
+
+# Function to install Xcode Command Line Tools
+install_xcode_tools() {
+    if [[ "$XCODE_INSTALL" == "yes" ]]; then
+      xcode-select --install
+    fi
+}
+
+# Function to install Homebrew
+install_homebrew() {
+    if [[ "$BREW_INSTALL" == "yes" ]]; then
+      /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+      brew analytics off
+    fi
+}
+
+# Function to install iTerm2 using Homebrew
+install_iterm2() {
+    if [[ "$ITERM2_INSTALL" == "yes" ]]; then
+      install_package_mac iterm2
+    fi
+}
+
+# Function to install web browsers using Homebrew
+# Function to install Google Chrome using Homebrew
+install_google_chrome() {
+    install_package_mac google-chrome
+}
+
+# Function to install Firefox using Homebrew
+install_firefox() {
+    install_package_mac firefox
+}
+
+# Function to install Microsoft Edge using Homebrew
+install_microsoft_edge() {
+    install_package_mac microsoft-edge
+}
+
+# Function to install Brave Browser using Homebrew
+install_brave_browser() {
+    install_package_mac brave-browser
+}
+
+# Function to install web browsers using Homebrew
+install_web_browsers() {
+    install_google_chrome
+    install_firefox
+    install_microsoft_edge
+    install_brave_browser
+}
+
+# Function to install Rectangle (window manager) using Homebrew
+install_rectangle() {
+    if [[ "$RECTANGLE_INSTALL" == "yes" ]]; then
+      install_package_mac rectangle
+    fi
+}
+
+# Function to install TextMate using Homebrew
+install_textmate() {
+  if [[ "$TEXTMATE_INSTALL" == "yes" ]]; then
+      install_package_mac textmate
+  fi
+}
+
+# Function to tap into Homebrew Cask Fonts
+tap_fonts() {
+    brew tap homebrew/cask-fonts
+}
+
+# Function to call package installation functions
+install_mac_packages() {
+    install_xcode_tools
+    install_homebrew
+    install_iterm2
+    install_web_browsers
+    install_rectangle
+    install_textmate
+    tap_fonts
+    install_fira_code  # Call the function to install Fira Code Nerd Font
+}
+
+# Function to install Zsh on Debian-based Linux
+install_zsh_debian() {
+    if [[ -x "$(command -v zsh)" ]]; then
+        log "Zsh is already installed."
+    else
+        sudo apt-get update
+        sudo apt-get install -y zsh
+        log "Zsh installed successfully."
+    fi
+}
+
+
+# Function to install additional packages on Debian-based Linux
+install_debian_zsh_helper_packages() {
+    # Update and upgrade packages
+    sudo apt update
+    sudo apt upgrade
+
+    # Tap into Fonts repository (not exactly Homebrew Cask Fonts, but similar)
+    sudo add-apt-repository universe
+    sudo apt-get update
+
+    # Install Fira Code Nerd Font
+    if [[ "$FIRA_CODE_INSTALL" == "yes" ]]; then
+        sudo apt-get install fonts-firacode
+    fi
+
+    # Install additional packages using apt
+    sudo apt install git
+    sudo apt-get install zsh-history-substring-search
+    sudo apt-get install zsh-syntax-highlighting
+    sudo apt-get install zsh
+    sudo apt-get install z
+    sudo apt-get install tree
+}
+
+# Function to install packages on macOS or Debian-based Linux
+install_packages() {
+    if [[ $(uname) == "Darwin" ]]; then
+        install_mac_packages
+    elif [[ $(uname) == "Linux" ]]; then
+        install_debian_zsh_helper_packages
+    else
+        log "Unsupported operating system."
+        exit 1
+    fi
+}
+
+# Check if Zsh is the default shell
+check_default_shell() {
+    current_shell="$(basename "$SHELL")"
+    if [ "$current_shell" != "zsh" ]; then
+        if [[ "$check_default_shell" == "yes" ]]; then
+            # Check if Zsh is installed
+            if ! command -v zsh &> /dev/null; then
+                log "Zsh is not installed. Installing Zsh..."
+                install_zsh_debian
+            fi
+
+            # Change the default shell to Zsh
+            chsh -s /bin/zsh
+            log "Zsh is now the default shell."
+        else
+            log "Zsh is not the default shell. You can manually change it later using 'chsh -s /bin/zsh'."
+        fi
+    fi
+}
+
+# Main function
+main() {
+    # Prompt the user for configuration file usage
+    if [ -f "config.txt" ]; then
+        read -p "A configuration file 'config.txt' was found. Do you want to use it for silent installation? (Y/N): " config_choice
+        if [[ "$config_choice" == [Yy]* ]]; then
+            log "Using configuration settings from 'config.txt' for silent installation."
+        else
+            log "Proceeding with user prompts."
+        fi
+    else
+        log "Configuration file 'config.txt' not found. Using default settings and proceeding with user prompts."
+    fi
+
+    # Prompt the user for configuration file backup
+    if [[ "$backup_config_files" == "yes" ]]; then
+        backup_config_files
+    fi
+
+    # Prompt the user to execute the install_packages function
+    if [[ "$install_packages" == "yes" ]]; then
+        install_packages
+    else
+        log "Package installation skipped."
+    fi
+
+    # Check the user's installation choices
+    if [ -z "$choices" ]; then
+        echo "Select what to install (separate with spaces):"
+        echo "1. Java 11"
+        echo "2. Java 17"
+        echo "3. Python Env"
+        echo "4. Zsh and Oh-My-Zsh"
+        echo "5. Zsh and Oh-My-Zsh & Powerlevel10k theme"
+        read -p "Enter your choices (e.g., '1 3 5'): " choices
+    fi
+
+    for choice in $choices; do
+        case "$choice" in
+            1)
+                if [[ "$install_java_11" == "yes" ]]; then
+                    install_java 11
+                else
+                    log "Java 11 installation skipped."
+                fi
+                ;;
+            2)
+                if [[ "$install_java_17" == "yes" ]]; then
+                    install_java 17
+                else
+                    log "Java 17 installation skipped."
+                fi
+                ;;
+            3)
+                if [[ "$install_pyenv" == "yes" ]]; then
+                    install_pyenv
+                    read -p "Do you want to install Python 3.9.11 with PyEnv? (Y/N): " install_python_choice
+                    if [[ "$install_python_choice" == [Yy]* ]]; then
+                        install_python_3_9_11
+                    else
+                        log "Python installation skipped."
+                    fi
+                else
+                    log "PyEnv installation skipped."
+                fi
+                ;;
+            4)
+                if [[ "$install_oh_my_zsh" == "yes" ]]; then
+                    install_oh_my_zsh
+                    configure_zsh_plugins_if_installed  # Call to configure Zsh plugins if Oh-My-Zsh is installed
+                else
+                    log "Oh-My-Zsh installation skipped."
+                fi
+                ;;
+            5)
+                if [[ "$install_oh_my_zsh" == "yes" ]]; then
+                    install_oh_my_zsh
+                else
+                    log "Oh-My-Zsh installation skipped."
+                fi
+                if [[ "$install_powerlevel10k" == "yes" ]]; then
+                    install_powerlevel10k
+                else
+                    log "Powerlevel10k installation skipped."
+                fi
+                configure_zsh_plugins_if_installed  # Call to configure Zsh plugins if Oh-My-Zsh is installed
+                ;;
+            *)
+                log "Invalid choice: $choice"
+                ;;
+        esac
+    done
+
+    # Check if Zsh is the default shell and change if needed
+    check_default_shell
+
+    log "Installation completed."
+}
+
+# Execute the main function
+main

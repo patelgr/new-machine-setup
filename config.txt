@@ -1,0 +1,69 @@
+# Work In Progress Configuration file for silent installation
+
+# Set to "Y" to install iTerm2, "N" to skip installation
+ITERM2_INSTALL="N"
+
+# Set to "Y" to install web browsers, "N" to skip installation
+BROWSERS_INSTALL="N"
+
+# Set individual options for web browsers if BROWSERS_INSTALL is "Y"
+CHROME_INSTALL="N"
+FIREFOX_INSTALL="N"
+EDGE_INSTALL="N"
+BRAVE_INSTALL="N"
+
+# Set to "Y" to install Rectangle (window manager), "N" to skip installation
+RECTANGLE_INSTALL="N"
+
+# Set to "Y" to install TextMate, "N" to skip installation
+TEXTMATE_INSTALL="N"
+
+# Set to "Y" to install Fira Code Nerd Font, "N" to skip installation
+FIRA_CODE_INSTALL="N"
+
+# Configuration file for silent installation
+
+# Configuration for backup_config_files
+# Set to "yes" to backup configuration files, "no" to skip backup
+backup_config_files="yes"
+
+# Configuration for install_packages
+# Set to "yes" to execute install_packages, "no" to skip package installation
+install_packages="yes"
+
+# Configuration for install_java_11
+# Set to "yes" to install Java 11, "no" to skip Java 11 installation
+install_java_11="yes"
+
+# Configuration for install_java_17
+# Set to "yes" to install Java 17, "no" to skip Java 17 installation
+install_java_17="no"
+
+# Configuration for install_pyenv
+# Set to "yes" to install PyEnv and its dependencies, "no" to skip PyEnv installation
+install_pyenv="yes"
+
+# Configuration for install_python_3_9_11
+# Set to "yes" to install Python 3.9.11 with PyEnv, "no" to skip Python installation
+install_python_3_9_11="yes"
+
+# Configuration for install_oh_my_zsh
+# Set to "yes" to install Oh-My-Zsh, "no" to skip Oh-My-Zsh installation
+install_oh_my_zsh="yes"
+
+# Configuration for install_powerlevel10k
+# Set to "yes" to download and install Powerlevel10k theme, "no" to skip installation
+install_powerlevel10k="yes"
+
+# Configuration for configure_zsh_plugins
+# Set to "yes" to configure Zsh plugins, "no" to skip configuration
+configure_zsh_plugins="yes"
+
+# Configuration for configure_zsh_plugins_if_installed
+# Set to "yes" to configure Zsh plugins if Oh-My-Zsh is installed, "no" to skip
+configure_zsh_plugins_if_installed="yes"
+
+# Configuration for check_default_shell
+# Set to "yes" to check if Zsh is the default shell and change if not, "no" to skip
+check_default_shell="yes"
+
