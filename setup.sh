@@ -5,9 +5,6 @@ log() {
     echo "[LOG] $1"
 }
 
-
-
-
 # Function to backup configuration files
 backup_config_files() {
     current_datetime=$(date +'%Y-%m-%d_%H-%M-%S')
@@ -18,11 +15,9 @@ backup_config_files() {
     log "Configuration files backed up to $backup_dir."
 }
 
-
 # Function to install a package using Homebrew (macOS)
 install_package_mac() {
     local package_name="$1"
-
     if [[ -x "$(command -v brew)" ]]; then
         # Homebrew is installed, install the package
         brew install "$package_name"
@@ -213,8 +208,7 @@ install_pyenv() {
 }
 
 # Function to install Fira Code Nerd Font if specified
-install_fira_code() {
-    if [[ "$FIRA_CODE_INSTALL" == "yes" ]]; then
+install_firacode() {
         if [[ $(uname) == "Darwin" ]]; then
             # Install Fira Code Nerd Font on macOS
             install_package "font-fira-code-nerd-font"
@@ -227,34 +221,26 @@ install_fira_code() {
     fi
 }
 
-# Function to install TextMate using Homebrew if specified
+# Function to install TextMate using Homebrew
 install_textmate() {
-    if [[ "$TEXTMATE_INSTALL" == "yes" ]]; then
-        install_package "textmate"
-    fi
+    install_package_mac textmate
 }
 
 
 # Function to install Xcode Command Line Tools
 install_xcode_tools() {
-    if [[ "$XCODE_INSTALL" == "yes" ]]; then
-      xcode-select --install
-    fi
+    xcode-select --install
 }
 
 # Function to install Homebrew
 install_homebrew() {
-    if [[ "$BREW_INSTALL" == "yes" ]]; then
-      /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-      brew analytics off
-    fi
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    brew analytics off
 }
 
 # Function to install iTerm2 using Homebrew
 install_iterm2() {
-    if [[ "$ITERM2_INSTALL" == "yes" ]]; then
-      install_package_mac iterm2
-    fi
+    install_package_mac iterm2
 }
 
 # Function to install web browsers using Homebrew
@@ -288,17 +274,9 @@ install_web_browsers() {
 
 # Function to install Rectangle (window manager) using Homebrew
 install_rectangle() {
-    if [[ "$RECTANGLE_INSTALL" == "yes" ]]; then
-      install_package_mac rectangle
-    fi
+    install_package_mac rectangle
 }
 
-# Function to install TextMate using Homebrew
-install_textmate() {
-  if [[ "$TEXTMATE_INSTALL" == "yes" ]]; then
-      install_package_mac textmate
-  fi
-}
 
 # Function to tap into Homebrew Cask Fonts
 tap_fonts() {
@@ -314,7 +292,7 @@ install_mac_packages() {
     install_rectangle
     install_textmate
     tap_fonts
-    install_fira_code  # Call the function to install Fira Code Nerd Font
+    install_firacode  # Call the function to install Fira Code Nerd Font
 }
 
 # Function to install Zsh on Debian-based Linux
@@ -339,11 +317,7 @@ install_debian_zsh_helper_packages() {
     sudo add-apt-repository universe
     sudo apt-get update
 
-    # Install Fira Code Nerd Font
-    if [[ "$FIRA_CODE_INSTALL" == "yes" ]]; then
-        sudo apt-get install fonts-firacode
-    fi
-
+    install_firacode
     # Install additional packages using apt
     sudo apt install git
     sudo apt-get install zsh-history-substring-search
@@ -387,100 +361,16 @@ check_default_shell() {
 
 # Main function
 main() {
-    # Prompt the user for configuration file usage
-    if [ -f "config.txt" ]; then
-        read -p "A configuration file 'config.txt' was found. Do you want to use it for silent installation? (Y/N): " config_choice
-        if [[ "$config_choice" == [Yy]* ]]; then
-            log "Using configuration settings from 'config.txt' for silent installation."
-        else
-            log "Proceeding with user prompts."
-        fi
-    else
-        log "Configuration file 'config.txt' not found. Using default settings and proceeding with user prompts."
-    fi
-
-    # Prompt the user for configuration file backup
-    if [[ "$backup_config_files" == "yes" ]]; then
-        backup_config_files
-    fi
-
-    # Prompt the user to execute the install_packages function
-    if [[ "$install_packages" == "yes" ]]; then
-        install_packages
-    else
-        log "Package installation skipped."
-    fi
-
-    # Check the user's installation choices
-    if [ -z "$choices" ]; then
-        echo "Select what to install (separate with spaces):"
-        echo "1. Java 11"
-        echo "2. Java 17"
-        echo "3. Python Env"
-        echo "4. Zsh and Oh-My-Zsh"
-        echo "5. Zsh and Oh-My-Zsh & Powerlevel10k theme"
-        read -p "Enter your choices (e.g., '1 3 5'): " choices
-    fi
-
-    for choice in $choices; do
-        case "$choice" in
-            1)
-                if [[ "$install_java_11" == "yes" ]]; then
-                    install_java 11
-                else
-                    log "Java 11 installation skipped."
-                fi
-                ;;
-            2)
-                if [[ "$install_java_17" == "yes" ]]; then
-                    install_java 17
-                else
-                    log "Java 17 installation skipped."
-                fi
-                ;;
-            3)
-                if [[ "$install_pyenv" == "yes" ]]; then
-                    install_pyenv
-                    read -p "Do you want to install Python 3.9.11 with PyEnv? (Y/N): " install_python_choice
-                    if [[ "$install_python_choice" == [Yy]* ]]; then
-                        install_python_3_9_11
-                    else
-                        log "Python installation skipped."
-                    fi
-                else
-                    log "PyEnv installation skipped."
-                fi
-                ;;
-            4)
-                if [[ "$install_oh_my_zsh" == "yes" ]]; then
-                    install_oh_my_zsh
-                    configure_zsh_plugins_if_installed  # Call to configure Zsh plugins if Oh-My-Zsh is installed
-                else
-                    log "Oh-My-Zsh installation skipped."
-                fi
-                ;;
-            5)
-                if [[ "$install_oh_my_zsh" == "yes" ]]; then
-                    install_oh_my_zsh
-                else
-                    log "Oh-My-Zsh installation skipped."
-                fi
-                if [[ "$install_powerlevel10k" == "yes" ]]; then
-                    install_powerlevel10k
-                else
-                    log "Powerlevel10k installation skipped."
-                fi
-                configure_zsh_plugins_if_installed  # Call to configure Zsh plugins if Oh-My-Zsh is installed
-                ;;
-            *)
-                log "Invalid choice: $choice"
-                ;;
-        esac
-    done
-
-    # Check if Zsh is the default shell and change if needed
+    backup_config_files
+    install_packages
+    install_java 11
+    install_java 17
+    install_pyenv
+    install_python_3_9_11
+    install_oh_my_zsh
+    configure_zsh_plugins_if_installed  # Call to configure Zsh plugins if Oh-My-Zsh is installed
+    install_powerlevel10k
     check_default_shell
-
     log "Installation completed."
 }
 
