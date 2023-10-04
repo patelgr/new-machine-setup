@@ -45,7 +45,6 @@ install_package() {
     fi
 }
 
-
 # Function to install Java on macOS using Homebrew
 install_java_mac() {
     local version="$1"
@@ -69,7 +68,6 @@ install_java_debian() {
 
     log "Java $version installation completed."
 }
-
 
 # Function to install Java based on OS and version
 install_java() {
@@ -112,14 +110,8 @@ install_zsh_plugin() {
         return
     fi
 
-    read -p "Do you want to install the $plugin_name plugin (Y/N)? " install_choice
-    if [[ $install_choice == [Yy]* ]]; then
-        git clone "https://github.com/$plugin_repo" "$plugin_dir" && log "Installed $plugin_name plugin to $plugin_dir"
-    else
-        log "$plugin_name installation skipped."
-    fi
+    git clone "https://github.com/$plugin_repo" "$plugin_dir" && log "Installed $plugin_name plugin to $plugin_dir"
 }
-
 
 # Function to configure Zsh plugins
 configure_zsh_plugins() {
@@ -179,13 +171,16 @@ configure_zsh_plugins_if_installed() {
     fi
 }
 
-
 # Function to install Python with PyEnv
-install_python_3_9_11() {
+install_python_3_9_13() {
     # Install and set Python version with PyEnv
     pyenv install 3.9.13
-    pyenv global 3.9.13
-    log "Python 3.9.13 installed and set as the global version."
+    if [ $? -eq 0 ]; then
+        pyenv global 3.9.13
+        log "Python 3.9.13 installed and set as the global version."
+    else
+        log "Error installing Python 3.9.13 with PyEnv."
+    fi
 }
 
 # Function to install PyEnv and its dependencies
@@ -209,15 +204,14 @@ install_pyenv() {
 
 # Function to install Fira Code Nerd Font if specified
 install_firacode() {
-        if [[ $(uname) == "Darwin" ]]; then
-            # Install Fira Code Nerd Font on macOS
-            install_package "font-fira-code-nerd-font"
-        elif [[ -f /etc/debian_version ]]; then
-            # Install Fira Code Nerd Font on Debian-based Linux
-            sudo apt-get install fonts-firacode
-        else
-            log "Unsupported operating system for Fira Code Nerd Font installation."
-        fi
+    if [[ $(uname) == "Darwin" ]]; then
+        # Install Fira Code Nerd Font on macOS
+        install_package "font-fira-code-nerd-font"
+    elif [[ -f /etc/debian_version ]]; then
+        # Install Fira Code Nerd Font on Debian-based Linux
+        sudo apt-get install fonts-firacode
+    else
+        log "Unsupported operating system for Fira Code Nerd Font installation."
     fi
 }
 
@@ -225,7 +219,6 @@ install_firacode() {
 install_textmate() {
     install_package_mac textmate
 }
-
 
 # Function to install Xcode Command Line Tools
 install_xcode_tools() {
@@ -244,39 +237,24 @@ install_iterm2() {
 }
 
 # Function to install web browsers using Homebrew
-# Function to install Google Chrome using Homebrew
-install_google_chrome() {
-    install_package_mac google-chrome
-}
-
-# Function to install Firefox using Homebrew
-install_firefox() {
-    install_package_mac firefox
-}
-
-# Function to install Microsoft Edge using Homebrew
-install_microsoft_edge() {
-    install_package_mac microsoft-edge
-}
-
-# Function to install Brave Browser using Homebrew
-install_brave_browser() {
-    install_package_mac brave-browser
-}
-
 # Function to install web browsers using Homebrew
 install_web_browsers() {
-    install_google_chrome
-    install_firefox
-    install_microsoft_edge
-    install_brave_browser
+    local browsers=(
+        "google-chrome"
+        "firefox"
+        "microsoft-edge"
+        "brave-browser"
+    )
+
+    for browser in "${browsers[@]}"; do
+        install_package_mac "$browser"
+    done
 }
 
 # Function to install Rectangle (window manager) using Homebrew
 install_rectangle() {
     install_package_mac rectangle
 }
-
 
 # Function to tap into Homebrew Cask Fonts
 tap_fonts() {
@@ -305,7 +283,6 @@ install_zsh_debian() {
         log "Zsh installed successfully."
     fi
 }
-
 
 # Function to install additional packages on Debian-based Linux
 install_debian_zsh_helper_packages() {
@@ -340,21 +317,21 @@ install_packages() {
 }
 
 # Check if Zsh is the default shell
-check_default_shell() {
+install_and_make_zsh_default() {
     current_shell="$(basename "$SHELL")"
     if [ "$current_shell" != "zsh" ]; then
-        if [[ "$check_default_shell" == "yes" ]]; then
-            # Check if Zsh is installed
-            if ! command -v zsh &> /dev/null; then
-                log "Zsh is not installed. Installing Zsh..."
-                install_zsh_debian
-            fi
+        # Check if Zsh is installed
+        if ! command -v zsh &> /dev/null; then
+            log "Zsh is not installed. Installing Zsh..."
+            install_zsh_debian
+        fi
 
-            # Change the default shell to Zsh
-            chsh -s /bin/zsh
+        # Change the default shell to Zsh
+        chsh -s /bin/zsh
+        if [ $? -eq 0 ]; then
             log "Zsh is now the default shell."
         else
-            log "Zsh is not the default shell. You can manually change it later using 'chsh -s /bin/zsh'."
+            log "Error changing the default shell to Zsh. You can manually change it later using 'chsh -s /bin/zsh'."
         fi
     fi
 }
@@ -366,11 +343,11 @@ main() {
     install_java 11
     install_java 17
     install_pyenv
-    install_python_3_9_11
+    install_python_3_9_13
     install_oh_my_zsh
     configure_zsh_plugins_if_installed  # Call to configure Zsh plugins if Oh-My-Zsh is installed
     install_powerlevel10k
-    check_default_shell
+    install_and_make_zsh_default
     log "Installation completed."
 }
 
