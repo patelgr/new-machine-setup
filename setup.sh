@@ -20,6 +20,7 @@ install_package_mac() {
     local package_name="$1"
     if [[ -x "$(command -v brew)" ]]; then
         # Homebrew is installed, install the package
+        brew update
         brew install "$package_name"
     else
         log "Homebrew is not installed. Cannot install '$package_name'."
@@ -161,7 +162,7 @@ configure_zsh_plugins() {
 }
 
 # Function to configure Zsh plugins if Oh-My-Zsh is installed
-configure_zsh_plugins_if_installed() {
+configure_oh_my_zsh_plugins() {
     local zsh_custom="${ZSH_CUSTOM:-~/.oh-my-zsh/custom}"
 
     if [[ -d "$zsh_custom" ]]; then
@@ -171,17 +172,31 @@ configure_zsh_plugins_if_installed() {
     fi
 }
 
-# Function to install Python with PyEnv
-install_python_3_9_13() {
-    # Install and set Python version with PyEnv
-    pyenv install 3.9.13
-    if [ $? -eq 0 ]; then
-        pyenv global 3.9.13
-        log "Python 3.9.13 installed and set as the global version."
+# Function to check if PyEnv is installed
+check_pyenv() {
+    if [ -x "$(command -v pyenv)" ]; then
+        return 0  # PyEnv is installed
     else
-        log "Error installing Python 3.9.13 with PyEnv."
+        return 1  # PyEnv is not installed
     fi
 }
+
+# Function to install Python 3.9.13 with PyEnv
+install_python_3_9_13() {
+    if check_pyenv; then
+        # Install and set Python version with PyEnv
+        pyenv install 3.9.13
+        if [ $? -eq 0 ]; then
+            pyenv global 3.9.13
+            log "Python 3.9.13 installed and set as the global version."
+        else
+            log "Error installing Python 3.9.13 with PyEnv."
+        fi
+    else
+        log "PyEnv is not installed. Please install PyEnv first."
+    fi
+}
+
 
 # Function to install PyEnv and its dependencies
 install_pyenv() {
@@ -261,17 +276,6 @@ tap_fonts() {
     brew tap homebrew/cask-fonts
 }
 
-# Function to call package installation functions
-install_mac_packages() {
-    install_xcode_tools
-    install_homebrew
-    install_iterm2
-    install_web_browsers
-    install_rectangle
-    install_textmate
-    tap_fonts
-    install_firacode  # Call the function to install Fira Code Nerd Font
-}
 
 # Function to install Zsh on Debian-based Linux
 install_zsh_debian() {
@@ -285,7 +289,7 @@ install_zsh_debian() {
 }
 
 # Function to install additional packages on Debian-based Linux
-install_debian_zsh_helper_packages() {
+run_deb_update() {
     # Update and upgrade packages
     sudo apt update
     sudo apt upgrade
@@ -293,9 +297,10 @@ install_debian_zsh_helper_packages() {
     # Tap into Fonts repository (not exactly Homebrew Cask Fonts, but similar)
     sudo add-apt-repository universe
     sudo apt-get update
+}
 
-    install_firacode
-    # Install additional packages using apt
+# Function to install additional packages on Debian-based Linux
+install_debian_zsh_helper_packages() {
     sudo apt install git
     sudo apt-get install zsh-history-substring-search
     sudo apt-get install zsh-syntax-highlighting
@@ -304,20 +309,8 @@ install_debian_zsh_helper_packages() {
     sudo apt-get install tree
 }
 
-# Function to install packages on macOS or Debian-based Linux
-install_packages() {
-    if [[ $(uname) == "Darwin" ]]; then
-        install_mac_packages
-    elif [[ $(uname) == "Linux" ]]; then
-        install_debian_zsh_helper_packages
-    else
-        log "Unsupported operating system."
-        exit 1
-    fi
-}
-
 # Check if Zsh is the default shell
-install_and_make_zsh_default() {
+install_and_make_default_and_configure_zsh() {
     current_shell="$(basename "$SHELL")"
     if [ "$current_shell" != "zsh" ]; then
         # Check if Zsh is installed
@@ -330,6 +323,12 @@ install_and_make_zsh_default() {
         chsh -s /bin/zsh
         if [ $? -eq 0 ]; then
             log "Zsh is now the default shell."
+            log "Installing omz."
+            install_oh_my_zsh
+            log "Installing Powerlevel10k."
+            install_powerlevel10k
+            log "Configuring zsh plugins."
+            configure_oh_my_zsh_plugins  # Call to configure Zsh plugins if Oh-My-Zsh is installed
         else
             log "Error changing the default shell to Zsh. You can manually change it later using 'chsh -s /bin/zsh'."
         fi
@@ -338,16 +337,29 @@ install_and_make_zsh_default() {
 
 # Main function
 main() {
+    if [[ $(uname) == "Darwin" ]]; then
+        install_xcode_tools
+        install_homebrew
+        install_iterm2
+        install_web_browsers
+        install_rectangle
+        install_textmate
+        tap_fonts
+        install_firacode  # Call the function to install Fira Code Nerd Font
+    elif [[ $(uname) == "Linux" ]]; then
+        run_deb_update
+        install_firacode
+        install_debian_zsh_helper_packages
+    else
+        log "Unsupported operating system."
+    fi
     backup_config_files
-    install_packages
+    install_and_make_default_and_configure_zsh
     install_java 11
     install_java 17
     install_pyenv
     install_python_3_9_13
-    install_oh_my_zsh
-    configure_zsh_plugins_if_installed  # Call to configure Zsh plugins if Oh-My-Zsh is installed
-    install_powerlevel10k
-    install_and_make_zsh_default
+    backup_config_files
     log "Installation completed."
 }
 
