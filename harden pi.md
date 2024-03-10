@@ -101,54 +101,50 @@ sudo fail2ban-client status sshd  # Check banned IPs
 
 ## 6. Limiting Access with User Accounts
 
-### For Raspberry Pi:
-
-#### Create a new user and grant sudo privileges:
+To incorporate a prompt for the username and assign it to a variable named `NEW_USER`, you would typically do this within a shell script or a command-line session. Here's how you can structure the commands using `$NEW_USER` to represent the new username throughout the steps:
 
 ```bash
-sudo adduser <username>  # Replace '<username>' with your desired username
-sudo usermod -aG sudo <username>  # Replace '<username>' with the username you just created
+# Prompt for the new username and store it in the variable NEW_USER
+read -p "Enter the new username: " NEW_USER
 ```
 
-#### Disable default user 'pi':
+# For Raspberry Pi:
 
+## Create a new user and grant sudo privileges
 ```bash
-sudo usermod -L pi  # This command disables the 'pi' user
+sudo adduser $NEW_USER  # Create the new user
+sudo usermod -aG sudo $NEW_USER  # Add the new user to the sudo group
 ```
 
-#### Verification:
-
-Attempt to log in as 'pi' to ensure the account is disabled and verify that `<username>` has sudo access.
-
-### For DietPi:
-
-DietPi systems require careful management of user accounts. The 'root' and 'dietpi' users are integral to the system. While it's not advisable to remove these accounts, you can enhance security by disabling their passwords. Ensure you have an alternative user account with sudo privileges for administration tasks.
-
-#### Create a new user (if not already created):
-
+## Disable the default 'pi' user
 ```bash
-useradd -mk /etc/skel -s /bin/bash <username>  # Replace '<username>' with your desired username
-passwd <username>  # Assign a password to the new user
+sudo usermod -L pi  # Disable the 'pi' user
 ```
 
-This command sets up a user with a home directory and bash shell, copying default files from `/etc/skel`.
+# Verification:
+# Attempt to log in as 'pi' to ensure the account is disabled and verify that the new user has sudo access.
 
-#### Grant sudo privileges to the new user:
+# For DietPi:
 
+## Create a new user (if not already created)
 ```bash
-usermod -aG sudo <username>  # Replace '<username>' with your new user's username
+useradd -mk /etc/skel -s /bin/bash $NEW_USER  # Create the new user with a home directory and bash as the login shell
+passwd $NEW_USER  # Set a password for the new user
 ```
 
-#### Lock the 'root' and 'dietpi' user accounts:
-
+## Grant sudo privileges to the new user
 ```bash
-usermod -L root  # Disables the 'root' user's password
-usermod -L dietpi  # Disables the 'dietpi' user's password
+usermod -aG sudo $NEW_USER  # Add the new user to the sudo group
 ```
 
-#### Verification:
+## Lock the 'root' and 'dietpi' user accounts
+```bash
+usermod -L root  # Disable the 'root' user's password
+usermod -L dietpi  # Disable the 'dietpi' user's password
+```
 
-Make sure you can log in with the new user account and have sudo access. Try to log in as 'root' and 'dietpi' to confirm their accounts are locked.
+# Verification:
+# Ensure you can log in with the new user account and have sudo access. Try to log in as 'root' and 'dietpi' to confirm their accounts are locked.
 
 
 ## 7. Disabling Unnecessary Services
