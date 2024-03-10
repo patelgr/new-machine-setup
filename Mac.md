@@ -14,20 +14,7 @@ Xcode Command Line Tools are essential for development on Mac OS. Install them b
 xcode-select --install
 ```
 
-## Step 2: Configure SSH (Optional)
-
-If you need to change the default SSH port:
-
-1. Open the SSH config file in a text editor.
-2. Find the line with `Port 22` and change it to your desired port, for example, `Port 20171`.
-
-```sh
-sudo nano /etc/ssh/sshd_config
-```
-
-After editing, restart the SSH service for the changes to take effect.
-
-## Step 3: Install Homebrew
+## Step 2: Install Homebrew
 
 Homebrew is a package manager for Mac OS. Install it with the following command:
 
@@ -35,7 +22,7 @@ Homebrew is a package manager for Mac OS. Install it with the following command:
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
-## Step 4: Install and Configure Zsh
+## Step 3: Install and Configure Zsh
 
 Zsh is a powerful shell with more features and customizability than the default Bash.
 
@@ -51,7 +38,7 @@ Zsh is a powerful shell with more features and customizability than the default 
    chsh -s $(which zsh)
    ```
 
-## Step 5: Install Oh My Zsh
+## Step 4: Install Oh My Zsh
 
 Oh My Zsh is a framework for managing Zsh configuration. Install it with:
 
@@ -59,7 +46,7 @@ Oh My Zsh is a framework for managing Zsh configuration. Install it with:
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
 ```
 
-## Step 6: Install Powerlevel10k Theme
+## Step 5: Install Powerlevel10k Theme
 
 Powerlevel10k provides a fast and extensible prompt for Zsh.
 
@@ -75,7 +62,7 @@ Powerlevel10k provides a fast and extensible prompt for Zsh.
    sed -i -e '/^[[:space:]]*ZSH_THEME=/ {s/^/# /; s/$/\nZSH_THEME="powerlevel10k/powerlevel10k"/}' ~/.zshrc
    ```
 
-## Step 7: Install Utilities
+## Step 6: Install Utilities
 
 Install some common utilities and applications using Homebrew:
 
@@ -97,7 +84,7 @@ brew install zsh-autosuggestions zsh-syntax-highlighting z zsh-history-substring
 $(brew --prefix)/opt/fzf/install
 ```
 
-## Step 8: Configure `.zshrc`
+## Step 7: Configure `.zshrc`
 
 Customize your Zsh plugins in `~/.zshrc`. For example:
 
@@ -107,7 +94,7 @@ plugins=(git zsh-autosuggestions zsh-syntax-highlighting history common-aliases 
 # Add more plugins as needed
 ```
 
-## Step 9: Python Environment Setup
+## Step 8: Python Environment Setup
 
 1. Install PyEnv to manage Python versions:
 
@@ -122,7 +109,7 @@ plugins=(git zsh-autosuggestions zsh-syntax-highlighting history common-aliases 
    pyenv global 3.9.13
    ```
 
-## Step 10: Install Browsers
+## Step 9: Install Browsers
 
 Install your preferred browsers using Homebrew:
 
@@ -130,7 +117,7 @@ Install your preferred browsers using Homebrew:
 brew install --cask google-chrome firefox microsoft-edge brave-browser
 ```
 
-## Step 11: Install and Configure Java (Optional)
+## Step 10: Install and Configure Java (Optional)
 
 1. Install OpenJDK versions:
 
