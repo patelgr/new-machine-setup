@@ -1,7 +1,3 @@
-Based on the steps you've provided, I'll create a README tailored for Mac OS setup. This README assumes the user is starting with a clean installation of Mac OS and covers the setup of development tools, terminal enhancements, and some common utilities.
-
----
-
 # Mac OS Development Environment Setup
 
 This guide walks you through setting up a development environment on Mac OS. It includes installing essential tools like Xcode Command Line Tools, Homebrew, Zsh, Oh My Zsh, Powerlevel10k theme, various utilities, and setting up Python environments.
