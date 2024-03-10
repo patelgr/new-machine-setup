@@ -101,19 +101,55 @@ sudo fail2ban-client status sshd  # Check banned IPs
 
 ## 6. Limiting Access with User Accounts
 
-### Create a new user and grant sudo privileges:
+### For Raspberry Pi:
+
+#### Create a new user and grant sudo privileges:
+
 ```bash
-sudo adduser newuser  # Replace 'newuser' with your desired username
-sudo usermod -aG sudo newuser  # Replace 'newuser' with the username you just created
+sudo adduser <username>  # Replace '<username>' with your desired username
+sudo usermod -aG sudo <username>  # Replace '<username>' with the username you just created
 ```
 
-### Disable default user 'pi':
+#### Disable default user 'pi':
+
 ```bash
-sudo usermod -L pi  # Replace 'pi' with any default user you wish to disable
+sudo usermod -L pi  # This command disables the 'pi' user
 ```
 
-### Verification:
-Try to log in as 'pi' to ensure the account is disabled and verify 'newuser' has sudo access.
+#### Verification:
+
+Attempt to log in as 'pi' to ensure the account is disabled and verify that `<username>` has sudo access.
+
+### For DietPi:
+
+DietPi systems require careful management of user accounts. The 'root' and 'dietpi' users are integral to the system. While it's not advisable to remove these accounts, you can enhance security by disabling their passwords. Ensure you have an alternative user account with sudo privileges for administration tasks.
+
+#### Create a new user (if not already created):
+
+```bash
+useradd -mk /etc/skel -s /bin/bash <username>  # Replace '<username>' with your desired username
+passwd <username>  # Assign a password to the new user
+```
+
+This command sets up a user with a home directory and bash shell, copying default files from `/etc/skel`.
+
+#### Grant sudo privileges to the new user:
+
+```bash
+usermod -aG sudo <username>  # Replace '<username>' with your new user's username
+```
+
+#### Lock the 'root' and 'dietpi' user accounts:
+
+```bash
+usermod -L root  # Disables the 'root' user's password
+usermod -L dietpi  # Disables the 'dietpi' user's password
+```
+
+#### Verification:
+
+Make sure you can log in with the new user account and have sudo access. Try to log in as 'root' and 'dietpi' to confirm their accounts are locked.
+
 
 ## 7. Disabling Unnecessary Services
 
