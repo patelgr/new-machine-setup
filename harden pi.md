@@ -62,6 +62,11 @@ sudo sed -i '/PermitRootLogin/c\PermitRootLogin no' /etc/ssh/sshd_config
 sudo service ssh restart
 ```
 
+### Enable Password Login 
+```bash
+sudo sed -i '/PasswordAuthentication no/c\PasswordAuthentication yes' /etc/ssh/sshd_config
+```
+
 ### Verification:
 Try to SSH without the key and as root to ensure it's not permitted.
 
