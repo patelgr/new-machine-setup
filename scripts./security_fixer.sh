@@ -89,7 +89,84 @@ configureFirewall() {
     done
 }
 
-# Main execution logic
+# Function to list current iptables rules for a specific protocol
+listCurrentIptablesRules() {
+    local protocol=$1
+    sudo iptables -S | grep -E "^-A INPUT" | grep -m 1 -E " -p $protocol " | awk '{print $9}' | cut -d ':' -f2
+}
+
+# Function to compare listening ports with iptables rules
+comparePortsAndFirewall() {
+    local listening_ports
+    local current_rules
+    local protocol
+    local port
+
+    # Determine the network tool to use (prefer netstat, fall back to ss)
+    local net_tool=""
+    if command -v $PREFERRED_NET_TOOL >/dev/null; then
+        net_tool=$PREFERRED_NET_TOOL
+    elif [ "$PREFERRED_NET_TOOL" = "netstat" ] && command -v ss >/dev/null; then
+        net_tool="ss"
+    else
+        log_message "Neither netstat nor ss is installed. Please install one of these tools."
+        exit 1
+    fi
+
+    # Use the determined network tool to get listening ports
+    if [ "$net_tool" = "netstat" ]; then
+        listening_ports=$(sudo netstat -tuln | grep LISTEN | awk '{print $1 " " $4}' | cut -d: -f1,2)
+    else
+        listening_ports=$(sudo ss -tuln | grep LISTEN | awk '{print $1 " " $5}' | cut -d: -f1,2)
+    fi
+
+    # Get current iptables rules for TCP and UDP
+    local tcp_rules=$(listCurrentIptablesRules "tcp")
+    local udp_rules=$(listCurrentIptablesRules "udp")
+
+    # Compare listening ports against iptables rules
+    while IFS= read -r line; do
+        protocol=$(echo "$line" | awk '{print $1}')
+        port=$(echo "$line" | awk '{print $2}' | cut -d':' -f2)
+
+        if [ "$protocol" = "tcp" ] && ! echo "$tcp_rules" | grep -q -w "$port"; then
+            echo "Missing iptables rule for TCP port $port. Suggested command:"
+            echo "allowFirewallRule tcp $port"
+        elif [ "$protocol" = "udp" ] && ! echo "$udp_rules" | grep -q -w "$port"; then
+            echo "Missing iptables rule for UDP port $port. Suggested command:"
+            echo "allowFirewallRule udp $port"
+        fi
+    done <<< "$listening_ports"
+}
+
+# Check for missing firewall configurations and suggest commands to add them
+checkMissingFirewallConfigs() {
+    log_message "Checking for missing firewall configurations..."
+    local listening_ports
+    local protocol
+    local port
+
+    # Determine the preferred network tool and use it to list listening ports
+    if [ "$PREFERRED_NET_TOOL" = "netstat" ] && command -v netstat >/dev/null; then
+        listening_ports=$(netstat -tuln | awk '/^tcp/{sub(".*:", "", $4); print $1":"$4}')
+    elif [ "$PREFERRED_NET_TOOL" = "ss" ] && command -v ss >/dev/null; then
+        listening_ports=$(ss -tuln | awk '/^tcp/{sub(".*:", "", $4); print $1":"$4}')
+    else
+        log_message "Preferred network tool ($PREFERRED_NET_TOOL) is not available."
+        return 1
+    fi
+
+    # Check each listening port against iptables rules
+    for entry in $listening_ports; do
+        protocol=$(echo "$entry" | cut -d: -f1)
+        port=$(echo "$entry" | cut -d: -f2)
+
+        if [ "$protocol" = "tcp" ] && ! sudo iptables -C INPUT -p tcp --dport "$port" -j ACCEPT 2>/dev/null; then
+            log_message "Missing firewall rule for $protocol on port $port. To allow, run: ./script.sh allow $protocol $port"
+        fi
+    done
+}
+
 main() {
     case "$1" in
         update)
@@ -108,8 +185,11 @@ main() {
         undo)
             undoIptablesChanges
             ;;
+        check)
+            checkMissingFirewallConfigs
+            ;;
         *)
-            echo "Usage: $0 {update|allow|remove|configure|undo} [protocol] [port]"
+            echo "Usage: $0 {update|allow|remove|configure|undo|check} [protocol] [port]"
             exit 1
             ;;
     esac
@@ -117,3 +197,5 @@ main() {
 }
 
 main "$@"
+
+
