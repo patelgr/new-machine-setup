@@ -52,12 +52,56 @@ undo() {
 
 backup() {
     local file_path="$1"
-    log_message "Backup functionality not implemented."
+    if [ -z "$file_path" ]; then
+        log_message "No backup file path provided."
+        return 1
+    fi
+
+    log_message "Backing up iptables rules to '$file_path'."
+    sudo iptables-save > "$file_path"
+    if [ $? -eq 0 ]; then
+        log_message "Backup successful."
+    else
+        log_message "Backup failed."
+        return 1
+    fi
 }
+
 
 restore() {
     local file_path="$1"
-    log_message "Restore functionality not implemented."
+    local temp_backup="/tmp/iptables.backup.$(date +%Y%m%d%H%M%S)"
+
+    if [ ! -f "$file_path" ]; then
+        log_message "Backup file '$file_path' not found."
+        return 1
+    fi
+
+    # Create a temporary backup of the current rules
+    log_message "Creating temporary backup of current iptables rules."
+    sudo iptables-save > "$temp_backup"
+    if [ $? -ne 0 ]; then
+        log_message "Failed to create temporary backup. Aborting restore."
+        return 1
+    fi
+
+    # Attempt to restore from the specified backup file
+    log_message "Restoring iptables rules from '$file_path'."
+    sudo iptables-restore < "$file_path"
+    if [ $? -eq 0 ]; then
+        log_message "Restore successful."
+        # Clean up temporary backup file after successful restore
+        rm -f "$temp_backup"
+    else
+        log_message "Restore failed. Attempting to revert to temporary backup."
+        # If restore fails, revert to the temporary backup
+        if sudo iptables-restore < "$temp_backup"; then
+            log_message "Revert to temporary backup successful."
+        else
+            log_message "Critical error: Revert to temporary backup failed."
+        fi
+        # Consider keeping the temporary backup in case of critical failure for manual inspection
+    fi
 }
 
 wizard() {
