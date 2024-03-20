@@ -5,6 +5,18 @@ log_message() {
 }
 
 
+# Function to check if required commands are installed
+check_required_commands() {
+    if ! command -v iptables &> /dev/null; then
+        echo "iptables could not be found, please install it to proceed."
+        exit 1
+    fi
+
+    if ! command -v ip &> /dev/null; then
+        echo "ip command could not be found, please install it to proceed."
+        exit 1
+    fi
+}
 
 undo() {
     log_message "Undo functionality not implemented."
@@ -138,25 +150,8 @@ list_rules() {
     log_message "Listed iptables rules."
 }
 
-# Example usage: list_rules [port] [chain1] [chain2] ...
-# If no chain is specified, it defaults to INPUT, FORWARD, and OUTPUT.
-# Port is optional. If specified, it filters the rules by the given port.
 
 
-
-
-# Function to check if required commands are installed
-check_required_commands() {
-    if ! command -v iptables &> /dev/null; then
-        echo "iptables could not be found, please install it to proceed."
-        exit 1
-    fi
-
-    if ! command -v ip &> /dev/null; then
-        echo "ip command could not be found, please install it to proceed."
-        exit 1
-    fi
-}
 
 # Function to validate and prompt for protocol
 prompt_for_protocol() {
