@@ -31,19 +31,42 @@ check_required_commands() {
 
 check_default_policy() {
     local default_policy=$(sudo iptables -L INPUT --line-numbers -n | grep "Chain INPUT" | awk '{print $4}')
-    if [ "$default_policy" == "ACCEPT" ]; then
-        echo "ACCEPT"
-    else
-        echo "DROP"
-    fi
+    echo "$default_policy"  # Simply echo the policy, letting the caller handle it.
 }
 
 check_rules() {
     local protocol="$1"
     local port="$2"
     local interface="$3"
-    log_message "Check rules functionality not implemented."
+    local interface_option=""
+    local default_policy=$(check_default_policy)  # Call the function and capture its output
+
+    if [[ -n "$interface" ]]; then
+        interface_option="-i $interface"
+    fi
+
+    # Check for specific rules that match the criteria
+    local rule_exists=$(sudo iptables -L INPUT -n -v --line-numbers | grep "$protocol" | grep -- "$port" | grep "$interface_option")
+
+    if [[ -n "$rule_exists" ]]; then
+        # Specific rule exists, check if it's ACCEPT or DROP
+        if echo "$rule_exists" | grep -q "ACCEPT"; then
+            log_message "Traffic for $protocol port $port $interface_option is explicitly allowed."
+        elif echo "$rule_exists" | grep -q "DROP"; then
+            log_message "Traffic for $protocol port $port $interface_option is explicitly blocked."
+        else
+            log_message "Traffic for $protocol port $port $interface_option has a specific rule, but it's neither ACCEPT nor DROP."
+        fi
+    else
+        # No specific rule, fallback to default policy
+        if [[ "$default_policy" == "ACCEPT" ]]; then
+            log_message "No specific rule for $protocol port $port $interface_option. Default policy is ACCEPT."
+        else
+            log_message "No specific rule for $protocol port $port $interface_option. Default policy is DROP."
+        fi
+    fi
 }
+
 
 check_services() {
     log_message "Check services functionality not implemented."
