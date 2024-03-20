@@ -78,19 +78,35 @@ prompt_for_port() {
 }
 
 # Function to list and select network interface
+
 prompt_for_interface() {
     local interface=$1
-    if [[ -z "$interface" ]]; then
-        echo "Available interfaces:"
-        ip link show | awk -F: '$0 !~ "lo|^[^0-9]"{print $2;getline}' # Lists network interfaces
-        echo "* for all interfaces or leave blank for default (all interfaces)"
-        read -p "Enter interface: " interface
-    fi
+    local valid_interface=0
+    local interfaces=($(ip link show | awk -F: '$0 !~ "lo|^[^0-9]"{print $2;getline}' | tr -d ' ')) # Creates an array of available interfaces
+
+    while [[ $valid_interface -eq 0 ]]; do
+        if [[ -z "$interface" ]]; then
+            echo "Available interfaces:"
+            printf "%s\n" "${interfaces[@]}"
+            echo "* for all interfaces or leave blank for default (all interfaces)"
+            read -p "Enter interface: " interface
+        fi
+
+        # Check if interface is in the array of valid interfaces or if it's a special case
+        if [[ " ${interfaces[*]} " =~ " ${interface} " || "$interface" == "*" || -z "$interface" ]]; then
+            valid_interface=1
+        else
+            echo "Invalid interface. Please choose from the list above."
+            interface=""  # Reset interface to trigger the prompt again
+        fi
+    done
+
     if [[ -n "$interface" && "$interface" != "*" ]]; then
         interface_option="-i $interface"
     else
         interface_option=""
     fi
+
     echo $interface_option
 }
 
