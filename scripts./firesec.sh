@@ -35,21 +35,46 @@ check_default_policy() {
 }
 
 check_rules() {
-    local protocol="$1"
-    local port="$2"
-    local interface="$3"
+    local protocol="tcp"  # Default protocol
+    local port
+    local interface=""
     local interface_option=""
-    local default_policy=$(check_default_policy)  # Call the function and capture its output
+
+    # Check the number of arguments and assign appropriately
+    case "$#" in
+        1)  # Only port is provided
+            port="$1"
+            ;;
+        2)  # Protocol and port are provided, or port and interface
+            if [[ "$1" =~ ^(tcp|udp)$ ]]; then
+                protocol="$1"
+                port="$2"
+            else
+                port="$1"
+                interface="$2"
+            fi
+            ;;
+        3)  # Protocol, port, and interface are provided
+            protocol="$1"
+            port="$2"
+            interface="$3"
+            ;;
+        *)  # Incorrect usage
+            echo "Error: Incorrect usage."
+            echo "Usage: $0 check-rules [protocol] port [interface]"
+            echo "Example: $0 check-rules tcp 80 eth0"
+            return 1
+            ;;
+    esac
 
     if [[ -n "$interface" ]]; then
         interface_option="-i $interface"
     fi
 
-    # Check for specific rules that match the criteria
+    local default_policy=$(check_default_policy)
     local rule_exists=$(sudo iptables -L INPUT -n -v --line-numbers | grep "$protocol" | grep -- "$port" | grep "$interface_option")
 
     if [[ -n "$rule_exists" ]]; then
-        # Specific rule exists, check if it's ACCEPT or DROP
         if echo "$rule_exists" | grep -q "ACCEPT"; then
             log_message "Traffic for $protocol port $port $interface_option is explicitly allowed."
         elif echo "$rule_exists" | grep -q "DROP"; then
@@ -58,7 +83,6 @@ check_rules() {
             log_message "Traffic for $protocol port $port $interface_option has a specific rule, but it's neither ACCEPT nor DROP."
         fi
     else
-        # No specific rule, fallback to default policy
         if [[ "$default_policy" == "ACCEPT" ]]; then
             log_message "No specific rule for $protocol port $port $interface_option. Default policy is ACCEPT."
         else
@@ -66,6 +90,7 @@ check_rules() {
         fi
     fi
 }
+
 
 
 check_services() {
