@@ -120,12 +120,12 @@ list_rules() {
         # Process each rule
         while IFS= read -r line; do
             local line_number=$(echo "$line" | awk '{print $1}')
-            local target=$(echo "$line" | awk '{print $2}')
-            local prot=$(echo "$line" | awk '{print $3}')
-            local in_iface=$(echo "$line" | awk '{print $5}')
-            local out_iface=$(echo "$line" | awk '{print $6}')
-            local source=$(echo "$line" | awk '{print $7}')
-            local destination=$(echo "$line" | awk '{print $8}')
+            local target=$(echo "$line" | awk '{print $4}')
+            local prot=$(echo "$line" | awk '{print $5}')
+            local in_iface=$(echo "$line" | awk '{print $7}')
+            local out_iface=$(echo "$line" | awk '{print $8}')
+            local source=$(echo "$line" | awk '{print $9}')
+            local destination=$(echo "$line" | awk '{print $10}')
             local extra_info=$(echo "$line" | awk '{$1=$2=$3=$4=$5=$6=$7=$8=$9=""; print $0}')
             local port=$(echo "$extra_info" | grep -oE 'dpt:[0-9]+' | cut -d':' -f2)
             local pkts=$(echo "$line" | awk '{print $1}')
