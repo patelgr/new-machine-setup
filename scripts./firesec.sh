@@ -73,47 +73,74 @@ check_rules() {
 check_services() {
     log_message "Check services functionality not implemented."
 }
-
 list_rules() {
-    local port="$1"
-    local protocol="$2"
-    local interface="$3"
-    local allowed="$4"
-    local blocked="$5"
-
-    # Start building the iptables command
-    local cmd="sudo iptables -L -v -n"
-
-    # Check and append protocol if specified
-    if [ -n "$protocol" ]; then
-        cmd+=" -p $protocol"
+    # Default chains
+    local chains=("INPUT" "FORWARD" "OUTPUT")
+    local specified_port="$1" # Optional first argument to specify a port
+    local specified_chains=("$@") # All arguments as an array
+    if [ "${#specified_chains[@]}" -gt 1 ]; then
+        chains=("${specified_chains[@]:1}") # Use user-specified chains, if any
     fi
 
-    # Execute the command and start filtering
-    local output=$($cmd | tail -n +3) # Skip the first two header lines
+    echo "| # | CHAIN   | TARGET  | PROTOCOL | IN IFACE | OUT IFACE | SOURCE         | DESTINATION    | PORT  |PKTS  | bytes|"
+    echo "|---|---------|---------|----------|----------|-----------|----------------|----------------|-------|------|------|"
 
-    # Filter by interface, if specified
-    if [ -n "$interface" ]; then
-        output=$(echo "$output" | grep " $interface ")
-    fi
+    for chain in "${chains[@]}"; do
+        # Checking if iptables command can be executed successfully for the current chain
+        if ! sudo iptables -L "$chain" -n >/dev/null 2>&1; then
+            echo "Error: Failed to list iptables rules for chain '$chain'. Skipping..."
+            continue
+        fi
 
-    # Filter by port, if specified
-    if [ -n "$port" ]; then
-        output=$(echo "$output" | grep "dpt:$port\|spt:$port")
-    fi
+        # Get default policy for the chain, remove parentheses
+        local default_policy=$(sudo iptables -L "$chain" -n | head -n 1 | awk '{print $NF}' | tr -d ')')
 
-    # Filter by rule action (ACCEPT for allowed, REJECT/DROP for blocked)
-    if [ -n "$allowed" ]; then
-        output=$(echo "$output" | grep "ACCEPT")
-    elif [ -n "$blocked" ]; then
-        output=$(echo "$output" | grep -E "REJECT|DROP")
-    fi
+        # Display default policy as the first 'rule' for the chain
+        printf "| %-1s | %-7s | %-7s | %-8s | %-8s | %-9s | %-14s | %-14s | %-5s |%-5s | %-4s |\n" "*" "$chain" "$default_policy" "N/A" "N/A" "N/A" "N/A" "N/A" "N/A"
+        
+        # Get rules for the current chain
+        local rules=$(sudo iptables -L "$chain" -v -n --line-numbers)
+        
+        # Process each rule
+        while IFS= read -r line; do
+            local line_number=$(echo "$line" | awk '{print $1}')
+            local target=$(echo "$line" | awk '{print $2}')
+            local prot=$(echo "$line" | awk '{print $3}')
+            local in_iface=$(echo "$line" | awk '{print $5}')
+            local out_iface=$(echo "$line" | awk '{print $6}')
+            local source=$(echo "$line" | awk '{print $7}')
+            local destination=$(echo "$line" | awk '{print $8}')
+            local extra_info=$(echo "$line" | awk '{$1=$2=$3=$4=$5=$6=$7=$8=$9=""; print $0}')
+            local port=$(echo "$extra_info" | grep -oE 'dpt:[0-9]+' | cut -d':' -f2)
+            local pkts=$(echo "$line" | awk '{print $1}')
+            local bytes=$(echo "$line" | awk '{print $2}')
+            
+            if [[ "$prot" == "0" ]]; then
+                prot="All"
+            elif [[ "$prot" == "6" ]]; then
+                prot="TCP"
+            elif [[ "$prot" == "17" ]]; then
+                prot="UDP"
+            fi
 
-    # Format and display the output
-    echo "| STATUS    | PROTOCOL | PORT | INTERFACE |"
-    echo "|-----------|----------|------|-----------|"
-    echo "$output" | awk '{ printf("| %-9s | %-8s | %-4s | %-9s |\n", $NF, $4, $11, $8) }'
+            # If a port is specified by the user, only display rules related to that port
+            if [[ -n "$specified_port" && "$port" != "$specified_port" ]]; then
+                continue
+            fi
+
+            if [[ "$line_number" =~ ^[0-9]+$ ]]; then
+                printf "| %-1s | %-7s | %-7s | %-8s | %-8s | %-9s | %-14s | %-14s | %-5s |%-5s | %-4s |\n" "$line_number" "$chain" "$target" "$prot" "$in_iface" "$out_iface" "$source" "$destination" "$port" "$pkts" "$bytes"
+            fi
+        done <<< "$(echo "$rules" | tail -n +3)" # Skip the header lines for each chain
+    done
+
+    log_message "Listed iptables rules."
 }
+
+# Example usage: list_rules [port] [chain1] [chain2] ...
+# If no chain is specified, it defaults to INPUT, FORWARD, and OUTPUT.
+# Port is optional. If specified, it filters the rules by the given port.
+
 
 
 
