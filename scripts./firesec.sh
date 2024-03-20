@@ -7,8 +7,11 @@ log_message() {
 
 # Function to check if required commands are installed
 check_required_commands() {
+    # Check for iptables command
     if ! command -v iptables &> /dev/null; then
-        echo "iptables could not be found, please install it to proceed."
+        echo "The iptables command could not be found or is not accessible."
+        echo "Please ensure iptables is installed and try running this script with sudo:"
+        echo "sudo $0" # $0 is a special variable that contains the name of the script being executed
         exit 1
     fi
 
