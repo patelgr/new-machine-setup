@@ -5,8 +5,14 @@ log_message() {
 }
 
 
-# Function to check if required commands are installed
+# Function to check if required commands are installed and if running as root
 check_required_commands() {
+    # Check if the script is run as root
+    if [ "$(id -u)" -ne 0 ]; then
+        echo "This script must be run with root privileges. Please run this script with 'sudo' or as the root user."
+        exit 1
+    fi
+
     # Array of required commands
     local required_commands=("iptables" "ip" "awk" "grep")
 
@@ -14,11 +20,12 @@ check_required_commands() {
     for cmd in "${required_commands[@]}"; do
         if ! command -v "$cmd" &> /dev/null; then
             echo "$cmd command could not be found or is not accessible."
-            echo "Please ensure $cmd is installed and try running this script with elevated privileges, if required."
+            echo "Please ensure $cmd is installed and try running this script again."
             exit 1
         fi
     done
 }
+
 
 
 
@@ -314,9 +321,11 @@ allow_remove() {
 }
 
 
-
 # Main function to parse and execute commands
 main() {
+    # Perform required checks for root privileges and command availability
+    check_required_commands
+
     case "$1" in
         service-allow)
             service_allow "$2"
@@ -374,4 +383,5 @@ main() {
 }
 
 main "$@"
+
 
