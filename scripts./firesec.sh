@@ -21,6 +21,27 @@ check_required_commands() {
     fi
 }
 
+
+check_default_policy() {
+    local default_policy=$(sudo iptables -L INPUT --line-numbers -n | grep "Chain INPUT" | awk '{print $4}')
+    if [ "$default_policy" == "ACCEPT" ]; then
+        echo "ACCEPT"
+    else
+        echo "DROP"
+    fi
+}
+
+check_rules() {
+    local protocol="$1"
+    local port="$2"
+    local interface="$3"
+    log_message "Check rules functionality not implemented."
+}
+
+check_services() {
+    log_message "Check services functionality not implemented."
+}
+
 undo() {
     log_message "Undo functionality not implemented."
 }
@@ -48,6 +69,10 @@ apply_profile() {
 
 undo() {
     log_message "Undo functionality not implemented."
+}
+
+wizard() {
+    log_message "Wizard functionality not implemented."
 }
 
 backup() {
@@ -104,34 +129,37 @@ restore() {
     fi
 }
 
-wizard() {
-    log_message "Wizard functionality not implemented."
-}
+
 
 block_add() {
-    local protocol="$1"
-    local port="$2"
-    local interface="$3"
-    log_message "Block add functionality not implemented."
+    read protocol port interface_option <<< $(common_check_and_prompt "$1" "$2" "$3")
+    local default_policy=$(check_default_policy)
+
+    if [ "$default_policy" == "DROP" ]; then
+        log_message "Default policy is DROP. Adding a block rule may have no effect."
+        return 1
+    fi
+
+    if ! sudo iptables -C INPUT -p "$protocol" --dport "$port" $interface_option -j DROP 2>/dev/null; then
+        log_message "Blocking $protocol traffic on port $port $interface_option..."
+        sudo iptables -A INPUT -p "$protocol" --dport "$port" $interface_option -j DROP
+    else
+        log_message "Block rule for $protocol on port $port $interface_option already exists, skipping..."
+    fi
 }
 
 block_remove() {
-    local protocol="$1"
-    local port="$2"
-    local interface="$3"
-    log_message "Block remove functionality not implemented."
+    read protocol port interface_option <<< $(common_check_and_prompt "$1" "$2" "$3")
+
+    if sudo iptables -C INPUT -p "$protocol" --dport "$port" $interface_option -j DROP 2>/dev/null; then
+        log_message "Removing block for $protocol traffic on port $port $interface_option..."
+        sudo iptables -D INPUT -p "$protocol" --dport "$port" $interface_option -j DROP
+    else
+        log_message "Block rule for $protocol on port $port $interface_option does not exist, skipping..."
+    fi
 }
 
-check_rules() {
-    local protocol="$1"
-    local port="$2"
-    local interface="$3"
-    log_message "Check rules functionality not implemented."
-}
 
-check_services() {
-    log_message "Check services functionality not implemented."
-}
 list_rules() {
     check_required_commands
     # Default chains
@@ -261,6 +289,7 @@ common_check_and_prompt() {
 
     echo "$protocol" "$port" "$interface_option"
 }
+
 
 allow_add() {
     read protocol port interface_option <<< $(common_check_and_prompt "$1" "$2" "$3")
