@@ -7,19 +7,19 @@ log_message() {
 
 # Function to check if required commands are installed
 check_required_commands() {
-    # Check for iptables command
-    if ! command -v iptables &> /dev/null; then
-        echo "The iptables command could not be found or is not accessible."
-        echo "Please ensure iptables is installed and try running this script with sudo:"
-        echo "sudo $0" # $0 is a special variable that contains the name of the script being executed
-        exit 1
-    fi
+    # Array of required commands
+    local required_commands=("iptables" "ip" "awk" "grep")
 
-    if ! command -v ip &> /dev/null; then
-        echo "ip command could not be found, please install it to proceed."
-        exit 1
-    fi
+    # Loop through the array and check each command
+    for cmd in "${required_commands[@]}"; do
+        if ! command -v "$cmd" &> /dev/null; then
+            echo "$cmd command could not be found or is not accessible."
+            echo "Please ensure $cmd is installed and try running this script with elevated privileges, if required."
+            exit 1
+        fi
+    done
 }
+
 
 
 check_default_policy() {
