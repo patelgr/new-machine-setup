@@ -74,6 +74,7 @@ check_services() {
     log_message "Check services functionality not implemented."
 }
 list_rules() {
+    check_required_commands
     # Default chains
     local chains=("INPUT" "FORWARD" "OUTPUT")
     local specified_port="$1" # Optional first argument to specify a port
