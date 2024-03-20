@@ -80,8 +80,41 @@ list_rules() {
     local interface="$3"
     local allowed="$4"
     local blocked="$5"
-    log_message "List rules functionality not implemented."
+
+    # Start building the iptables command
+    local cmd="sudo iptables -L -v -n"
+
+    # Check and append protocol if specified
+    if [ -n "$protocol" ]; then
+        cmd+=" -p $protocol"
+    fi
+
+    # Execute the command and start filtering
+    local output=$($cmd | tail -n +3) # Skip the first two header lines
+
+    # Filter by interface, if specified
+    if [ -n "$interface" ]; then
+        output=$(echo "$output" | grep " $interface ")
+    fi
+
+    # Filter by port, if specified
+    if [ -n "$port" ]; then
+        output=$(echo "$output" | grep "dpt:$port\|spt:$port")
+    fi
+
+    # Filter by rule action (ACCEPT for allowed, REJECT/DROP for blocked)
+    if [ -n "$allowed" ]; then
+        output=$(echo "$output" | grep "ACCEPT")
+    elif [ -n "$blocked" ]; then
+        output=$(echo "$output" | grep -E "REJECT|DROP")
+    fi
+
+    # Format and display the output
+    echo "| STATUS    | PROTOCOL | PORT | INTERFACE |"
+    echo "|-----------|----------|------|-----------|"
+    echo "$output" | awk '{ printf("| %-9s | %-8s | %-4s | %-9s |\n", $NF, $4, $11, $8) }'
 }
+
 
 
 # Function to check if required commands are installed
