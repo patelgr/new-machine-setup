@@ -392,15 +392,40 @@ allow_add() {
 }
 
 allow_remove() {
-    read protocol port interface_option <<< $(common_check_and_prompt "$1" "$2" "$3")
+    echo "Listing 'ACCEPT' rules..."
+    # List rules with line numbers, filtering for 'ACCEPT' rules
+    local rules=$(sudo iptables -L INPUT --line-numbers | grep ACCEPT)
 
-    if sudo iptables -C INPUT -p "$protocol" --dport "$port" $interface_option -j ACCEPT 2>/dev/null; then
-        log_message "Removing $protocol connections on port $port $interface_option..."
-        sudo iptables -D INPUT -p "$protocol" --dport "$port" $interface_option -j ACCEPT
-    else
-        log_message "$protocol rule for port $port $interface_option does not exist, skipping..."
+    if [[ -z "$rules" ]]; then
+        echo "No 'ACCEPT' rules found."
+        return 1
     fi
+
+    echo "$rules"
+
+    # Prompt the user to select a rule to remove
+    read -p "Enter the number of the 'ACCEPT' rule to remove: " rule_number
+
+    # Validate the rule number: check if it's an integer and exists in the list of 'ACCEPT' rules
+    if ! [[ "$rule_number" =~ ^[0-9]+$ ]] || ! echo "$rules" | grep -q "^$rule_number"; then
+        echo "Invalid rule number. Operation cancelled."
+        return 1
+    fi
+
+    # Optional: confirmation before removing the rule
+    read -p "Are you sure you want to remove rule number $rule_number? [y/N]: " confirmation
+    if [[ $confirmation != "y" && $confirmation != "Y" ]]; then
+        echo "Operation cancelled."
+        return
+    fi
+
+    # Remove the selected rule
+    sudo iptables -D INPUT $rule_number
+
+    # Log or echo a message about the rule removal
+    log_message "Rule number $rule_number has been removed."
 }
+
 
 
 # Main function to parse and execute commands
