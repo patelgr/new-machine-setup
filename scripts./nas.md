@@ -82,7 +82,13 @@ sudo mount -a
 sudo systemctl daemon-reload
 ```
 
-#### Step 7: Verify the Mount
+#### Step 7: reboot
+Ensure the NAS is properly mounted to your specified mount point.
+```bash
+sudo reboot
+```
+
+#### Step 8: Verify the Mount
 Ensure the NAS is properly mounted to your specified mount point.
 ```bash
 mount | grep "$MOUNT_POINT"
