@@ -338,12 +338,32 @@ prompt_for_interface() {
 common_check_and_prompt() {
     check_required_commands
 
-    local protocol=$(prompt_for_protocol "$1")
-    local port=$(prompt_for_port "$2")
-    local interface_option=$(prompt_for_interface "$3")
+    log_message "Starting common checks and prompts..."
 
-    echo "$protocol" "$port" "$interface_option"
+    log_message "Prompting for protocol..."
+    local protocol=$(prompt_for_protocol "$1")
+    log_message "Protocol selected: $protocol"
+
+    log_message "Prompting for port..."
+    local port=$(prompt_for_port "$2")
+    log_message "Port selected: $port"
+
+    log_message "Prompting for interface..."
+    local interface_option=$(prompt_for_interface "$3")
+    if [[ -n "$interface_option" && "$interface_option" != "-i *" ]]; then
+        # Extracting just the interface name from the option
+        local interface_name=$(echo $interface_option | cut -d ' ' -f 2)
+        log_message "Interface selected: $interface_name"
+    else
+        log_message "Interface selected: All interfaces or default"
+    fi
+
+    log_message "Common checks and prompts completed."
+    log_message "Final values - Protocol: $protocol, Port: $port, Interface Option: $interface_option"
+
+    #echo "$protocol" "$port" "$interface_option"
 }
+
 
 
 allow_add() {
