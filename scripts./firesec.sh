@@ -350,28 +350,31 @@ prompt_for_interface() {
     echo "$interface_option"
 }
 
-
 common_check_and_prompt() {
     check_required_commands
 
-    log_message "Starting common checks and prompts..."
+    >&2 echo "Starting common checks and prompts..."
 
-    log_message "Prompting for protocol..."
-    local protocol=$(prompt_for_protocol "$1")
-    log_message "Protocol selected: $protocol"
+    >&2 echo "Prompting for protocol..."
+    local protocol=$(prompt_for_protocol "$1" | tail -n 1)
+    >&2 echo "Protocol selected: $protocol"
 
-    log_message "Prompting for port..."
-    local port=$(prompt_for_port "$2")
-    log_message "Port selected: $port"
+    >&2 echo "Prompting for port..."
+    local port=$(prompt_for_port "$2" | tail -n 1)
+    >&2 echo "Port selected: $port"
 
-    log_message "Prompting for interface..."
-    local interface_option=$(prompt_for_interface "$3")
-    log_message "Interface selected: $interface_option"
+    >&2 echo "Prompting for interface..."
+    local interface_option=$(prompt_for_interface "$3" | tail -n 1)
+    if [ $? -ne 0 ]; then
+        >&2 echo "Interface selection was cancelled or failed."
+        return 1
+    fi
+    >&2 echo "Interface selected: $interface_option"
 
-    log_message "Common checks and prompts completed."
-    log_message "Final values - Protocol: $protocol, Port: $port, Interface Option: $interface_option"
+    >&2 echo "Common checks and prompts completed."
+    >&2 echo "Final values - Protocol: $protocol, Port: $port, Interface Option: $interface_option"
 
-    echo "$protocol" "$port" "$interface_option"  # This line returns the values to the caller
+    echo "$protocol" "$port" "$interface_option"
 }
 
 
