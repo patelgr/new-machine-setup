@@ -307,24 +307,39 @@ prompt_for_port() {
 prompt_for_interface() {
     local interface=$1
     local valid_interface=0
-    local interfaces=($(ip link show | awk -F: '$0 !~ "lo|^[^0-9]"{print $2;getline}' | tr -d ' ')) # Creates an array of available interfaces
+    local attempt_counter=0
+    local max_attempts=5
 
-    while [[ $valid_interface -eq 0 ]]; do
+    # Fetches and filters the list of available network interfaces
+    local interfaces=($(ip link show | awk -F: '$0 !~ "lo|^[^0-9]"{print $2;getline}' | tr -d ' '))
+
+    while [[ $valid_interface -eq 0 && $attempt_counter -lt $max_attempts ]]; do
         if [[ -z "$interface" ]]; then
             echo "Available interfaces:"
-            printf "%s\n" "${interfaces[@]}"
+            printf "  %s\n" "${interfaces[@]}"
             echo "* for all interfaces or leave blank for default (all interfaces)"
+            echo "Type 'exit' to cancel."
             read -p "Enter interface: " interface
+
+            if [[ "$interface" == "exit" ]]; then
+                echo "Interface selection cancelled."
+                return 1  # Exit the function with an error status
+            fi
         fi
 
-        # Check if interface is in the array of valid interfaces or if it's a special case
         if [[ " ${interfaces[*]} " =~ " ${interface} " || "$interface" == "*" || -z "$interface" ]]; then
             valid_interface=1
         else
-            echo "Invalid interface. Please choose from the list above."
+            echo "Invalid interface. Please choose from the list above or type 'exit' to cancel."
             interface=""  # Reset interface to trigger the prompt again
+            ((attempt_counter++))
         fi
     done
+
+    if [[ $attempt_counter -eq $max_attempts ]]; then
+        echo "Maximum attempts reached. Exiting."
+        return 1  # Exit the function with an error status
+    fi
 
     if [[ -n "$interface" && "$interface" != "*" ]]; then
         interface_option="-i $interface"
@@ -332,8 +347,9 @@ prompt_for_interface() {
         interface_option=""
     fi
 
-    echo $interface_option
+    echo "$interface_option"
 }
+
 
 common_check_and_prompt() {
     check_required_commands
@@ -350,19 +366,14 @@ common_check_and_prompt() {
 
     log_message "Prompting for interface..."
     local interface_option=$(prompt_for_interface "$3")
-    if [[ -n "$interface_option" && "$interface_option" != "-i *" ]]; then
-        # Extracting just the interface name from the option
-        local interface_name=$(echo $interface_option | cut -d ' ' -f 2)
-        log_message "Interface selected: $interface_name"
-    else
-        log_message "Interface selected: All interfaces or default"
-    fi
+    log_message "Interface selected: $interface_option"
 
     log_message "Common checks and prompts completed."
     log_message "Final values - Protocol: $protocol, Port: $port, Interface Option: $interface_option"
 
-    #echo "$protocol" "$port" "$interface_option"
+    echo "$protocol" "$port" "$interface_option"  # This line returns the values to the caller
 }
+
 
 
 
